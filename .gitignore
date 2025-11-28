@@ -1,7 +1,7 @@
 # .gitignore for DTLN Multi-Method Evaluation
 
 # ONNX Models (large files)
-*.onnx
+# *.onnx
 
 # Python
 __pycache__/
