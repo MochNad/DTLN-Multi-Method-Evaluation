@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DTLN Multi-Method Audio Evaluation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              border: "hsl(214.3 31.8% 91.4%)",
+              input: "hsl(214.3 31.8% 91.4%)",
+              ring: "hsl(222.2 84% 4.9%)",
+              background: "hsl(0 0% 100%)",
+              foreground: "hsl(222.2 84% 4.9%)",
+              primary: {
+                DEFAULT: "hsl(222.2 47.4% 11.2%)",
+                foreground: "hsl(210 40% 98%)",
+              },
+              secondary: {
+                DEFAULT: "hsl(210 40% 96.1%)",
+                foreground: "hsl(222.2 47.4% 11.2%)",
+              },
+              muted: {
+                DEFAULT: "hsl(210 40% 96.1%)",
+                foreground: "hsl(215.4 16.3% 46.9%)",
+              },
+              accent: {
+                DEFAULT: "hsl(210 40% 96.1%)",
+                foreground: "hsl(222.2 47.4% 11.2%)",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: hsl(222.2 47.4% 11.2%);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+      <!-- Header -->
+      <header
+        class="bg-gradient-to-r from-slate-900 to-slate-700 text-white rounded-xl shadow-2xl mb-8 p-8"
+      >
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">
+          🎵 DTLN Multi-Method Audio Evaluation
+        </h1>
+        <p class="text-slate-200 text-sm md:text-base">
+          Deep Learning & Traditional Audio Processing Comparison Tool
+        </p>
+      </header>
+
+      <!-- Info Box -->
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg
+              class="h-5 w-5 text-blue-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-blue-700 font-semibold">About This Tool</p>
+            <ul
+              class="mt-2 text-sm text-blue-600 list-disc list-inside space-y-1"
+            >
+              <li>
+                <strong>Deterministic:</strong> Fixed noise with DTLN neural
+                network (reproducible)
+              </li>
+              <li>
+                <strong>Stochastic:</strong> Random noise variations with DTLN
+                (different each run)
+              </li>
+              <li>
+                <strong>Traditional:</strong> Classical DSP methods (Spectral
+                Subtraction, Wiener Filter)
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Section -->
+      <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+          <span class="mr-2">📤</span> Audio Processing
+        </h2>
+
+        <form id="uploadForm" enctype="multipart/form-data" class="space-y-6">
+          <!-- Method Selection -->
+          <div>
+            <label
+              for="method"
+              class="block text-sm font-semibold text-slate-700 mb-2"
+              >🔧 Processing Method</label
+            >
+            <select
+              id="method"
+              name="method"
+              required
+              class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+            >
+              <option value="deterministic">
+                Deterministic (Fixed Noise + DTLN)
+              </option>
+              <option value="stochastic">
+                Stochastic (Random Noise + DTLN)
+              </option>
+              <option value="traditional">Traditional (DSP Methods)</option>
+            </select>
+            <div
+              id="method_desc"
+              class="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800"
+            >
+              Select a processing method to see details
+            </div>
+          </div>
+
+          <!-- File Uploads -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label
+                for="clean_audio"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >🎤 Clean Audio File (Required)</label
+              >
+              <input
+                type="file"
+                id="clean_audio"
+                name="clean_audio"
+                accept=".wav,.flac,.mp3"
+                required
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-700"
+              />
+            </div>
+
+            <div id="noise_audio_group">
+              <label
+                for="noise_audio"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >🔊 Noise Audio File</label
+              >
+              <input
+                type="file"
+                id="noise_audio"
+                name="noise_audio"
+                accept=".wav,.flac,.mp3"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-700"
+              />
+              <small class="text-slate-500 text-xs"
+                >Required for Deterministic, Optional for Traditional</small
+              >
+            </div>
+          </div>
+
+          <!-- Stochastic Options -->
+          <div
+            id="stochastic_options"
+            class="hidden grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <div>
+              <label
+                for="noise_type"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >📊 Noise Type</label
+              >
+              <select
+                id="noise_type"
+                name="noise_type"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+              >
+                <option value="gaussian">Gaussian Random Noise</option>
+                <option value="white">White Noise</option>
+                <option value="random_snr">Random SNR Mixing</option>
+                <option value="mixed">Mixed Random (Gaussian + White)</option>
+              </select>
+            </div>
+            <div>
+              <label
+                for="snr"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >📈 SNR (dB)</label
+              >
+              <input
+                type="number"
+                id="snr"
+                name="snr"
+                value="10"
+                min="-10"
+                max="30"
+                step="1"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+              />
+            </div>
+          </div>
+
+          <!-- Deterministic Options -->
+          <div
+            id="deterministic_options"
+            class="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <div>
+              <label
+                for="snr_det"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >📈 SNR (dB)</label
+              >
+              <input
+                type="number"
+                id="snr_det"
+                name="snr"
+                value="10"
+                min="-10"
+                max="30"
+                step="1"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+              />
+            </div>
+          </div>
+
+          <!-- Traditional Options -->
+          <div
+            id="traditional_options"
+            class="hidden grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <div>
+              <label
+                for="traditional_method"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >⚙️ Traditional Method</label
+              >
+              <select
+                id="traditional_method"
+                name="traditional_method"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+              >
+                <option value="spectral_subtraction">
+                  Spectral Subtraction
+                </option>
+                <option value="wiener">Wiener Filter</option>
+              </select>
+            </div>
+            <div>
+              <label
+                for="snr_trad"
+                class="block text-sm font-semibold text-slate-700 mb-2"
+                >📈 SNR (dB)</label
+              >
+              <input
+                type="number"
+                id="snr_trad"
+                name="snr"
+                value="10"
+                min="-10"
+                max="30"
+                step="1"
+                class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
+              />
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="processBtn"
+            class="w-full bg-slate-900 text-white py-4 px-6 rounded-lg font-semibold hover:bg-slate-700 transition-all transform hover:scale-[1.02] shadow-lg disabled:bg-slate-300 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            🚀 Process Audio
+          </button>
+        </form>
+      </div>
+
+      <!-- Loading -->
+      <div
+        id="loading"
+        class="hidden bg-white rounded-xl shadow-lg p-12 text-center mb-8"
+      >
+        <div class="spinner mx-auto mb-4"></div>
+        <h3 class="text-xl font-semibold text-slate-900 mb-2">
+          Processing audio... Please wait
+        </h3>
+        <p class="text-slate-600">
+          This may take a few moments depending on the audio length
+        </p>
+      </div>
+
+      <!-- Error -->
+      <div
+        id="error"
+        class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-8"
+      >
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg
+              class="h-5 w-5 text-red-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-red-700 font-semibold" id="error_text"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="hidden space-y-8">
+        <h2 class="text-2xl font-bold text-slate-900 flex items-center">
+          <span class="mr-2">📊</span> Results
+        </h2>
+
+        <!-- Method Info -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+          <h3 class="font-semibold text-blue-900 mb-1">Method Used:</h3>
+          <p id="method_used" class="text-blue-700">-</p>
+        </div>
+
+        <!-- Audio Outputs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h4
+              class="text-lg font-semibold text-slate-900 mb-4 flex items-center"
+            >
+              <span class="mr-2">🔊</span> Mixed Audio (Noisy)
+            </h4>
+            <audio id="mixed_audio" controls class="w-full mb-4"></audio>
+            <a
+              id="download_mixed"
+              download
+              class="inline-block w-full bg-green-600 text-white text-center py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition"
+            >
+              ⬇️ Download
+            </a>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h4
+              class="text-lg font-semibold text-slate-900 mb-4 flex items-center"
+            >
+              <span class="mr-2">✨</span> Processed Audio (Denoised)
+            </h4>
+            <audio id="processed_audio" controls class="w-full mb-4"></audio>
+            <a
+              id="download_processed"
+              download
+              class="inline-block w-full bg-green-600 text-white text-center py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition"
+            >
+              ⬇️ Download
+            </a>
+          </div>
+        </div>
+
+        <!-- Spectrograms -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-slate-900 flex items-center">
+              <span class="mr-2">📉</span> Spectrograms
+            </h3>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-lg">
+            <img
+              id="spec_combined"
+              alt="Combined Spectrograms"
+              class="w-full rounded-lg shadow-md"
+            />
+          </div>
+        </div>
+
+        <!-- Evaluation Metrics -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center">
+            <span class="mr-2">📊</span> Evaluation Metrics
+          </h3>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div
+              class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200"
+            >
+              <h4 class="text-sm font-semibold text-blue-900 mb-2">STOI</h4>
+              <div
+                id="metric_stoi"
+                class="text-3xl font-bold text-blue-700 mb-1"
+              >
+                -
+              </div>
+              <p class="text-xs text-blue-600">
+                Speech Intelligibility<br />(0-1, higher better)
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200"
+            >
+              <h4 class="text-sm font-semibold text-purple-900 mb-2">PESQ</h4>
+              <div
+                id="metric_pesq"
+                class="text-3xl font-bold text-purple-700 mb-1"
+              >
+                -
+              </div>
+              <p class="text-xs text-purple-600">
+                Perceptual Quality<br />(-0.5 to 4.5, higher better)
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl border border-amber-200"
+            >
+              <h4 class="text-sm font-semibold text-amber-900 mb-2">MSE</h4>
+              <div
+                id="metric_mse"
+                class="text-3xl font-bold text-amber-700 mb-1"
+              >
+                -
+              </div>
+              <p class="text-xs text-amber-600">
+                Mean Squared Error<br />(lower better)
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-rose-50 to-rose-100 p-6 rounded-xl border border-rose-200"
+            >
+              <h4 class="text-sm font-semibold text-rose-900 mb-2">MRE</h4>
+              <div
+                id="metric_mre"
+                class="text-3xl font-bold text-rose-700 mb-1"
+              >
+                -
+              </div>
+              <p class="text-xs text-rose-600">
+                Mean Relative Error<br />(lower better)
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Matrix Table -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+          <div
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4"
+          >
+            <h3 class="text-xl font-bold text-slate-900 flex items-center">
+              <span class="mr-2">📋</span> Processing Log Matrix
+            </h3>
+            <button
+              onclick="exportToExcel()"
+              class="bg-green-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-green-700 transition flex items-center"
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export to Excel
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="logTable" class="w-full text-sm text-left">
+              <thead class="text-xs uppercase bg-slate-100 text-slate-700">
+                <tr>
+                  <th class="px-4 py-3 font-semibold">Timestamp</th>
+                  <th class="px-4 py-3 font-semibold">Session ID</th>
+                  <th class="px-4 py-3 font-semibold">Method</th>
+                  <th class="px-4 py-3 font-semibold">STOI</th>
+                  <th class="px-4 py-3 font-semibold">PESQ</th>
+                  <th class="px-4 py-3 font-semibold">MSE</th>
+                  <th class="px-4 py-3 font-semibold">MRE</th>
+                  <th class="px-4 py-3 font-semibold">SNR (dB)</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody" class="divide-y divide-slate-200">
+                <!-- Rows will be added dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Log storage
+      let processingLogs = JSON.parse(
+        localStorage.getItem("processingLogs") || "[]"
+      );
+
+      // Method descriptions
+      const methodDescriptions = {
+        deterministic:
+          "Uses a fixed noise file mixed with clean audio at a constant SNR. Processed with DTLN neural network. Same inputs always produce the same output (reproducible).",
+        stochastic:
+          "Generates random noise (Gaussian, White, or Mixed) with varying characteristics. Processed with DTLN. Different output each time even with same clean audio.",
+        traditional:
+          "Classic DSP methods (Spectral Subtraction or Wiener Filter) without neural networks. Good baseline for comparison.",
+      };
+
+      // Update UI based on method selection
+      document.getElementById("method").addEventListener("change", function () {
+        const method = this.value;
+        const noiseGroup = document.getElementById("noise_audio_group");
+        const stochasticOpts = document.getElementById("stochastic_options");
+        const deterministicOpts = document.getElementById(
+          "deterministic_options"
+        );
+        const traditionalOpts = document.getElementById("traditional_options");
+        const methodDesc = document.getElementById("method_desc");
+
+        methodDesc.textContent = methodDescriptions[method];
+
+        // Reset display
+        stochasticOpts.classList.add("hidden");
+        deterministicOpts.classList.add("hidden");
+        traditionalOpts.classList.add("hidden");
+
+        if (method === "deterministic") {
+          noiseGroup.classList.remove("hidden");
+          deterministicOpts.classList.remove("hidden");
+          document.getElementById("noise_audio").required = true;
+        } else if (method === "stochastic") {
+          noiseGroup.classList.add("hidden");
+          stochasticOpts.classList.remove("hidden");
+          document.getElementById("noise_audio").required = false;
+        } else if (method === "traditional") {
+          noiseGroup.classList.remove("hidden");
+          traditionalOpts.classList.remove("hidden");
+          document.getElementById("noise_audio").required = false;
+        }
+      });
+
+      // Initialize on load
+      document.getElementById("method").dispatchEvent(new Event("change"));
+      updateLogTable();
+
+      // Form submission
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const method = document.getElementById("method").value;
+
+          // Add appropriate SNR value based on method
+          let snr = 10;
+          if (method === "stochastic") {
+            snr = document.getElementById("snr").value;
+            formData.set("snr", snr);
+          } else if (method === "deterministic") {
+            snr = document.getElementById("snr_det").value;
+            formData.set("snr", snr);
+          } else if (method === "traditional") {
+            snr = document.getElementById("snr_trad").value;
+            formData.set("snr", snr);
+          }
+
+          // Show loading
+          document.getElementById("loading").classList.remove("hidden");
+          document.getElementById("results").classList.add("hidden");
+          document.getElementById("error").classList.add("hidden");
+          document.getElementById("processBtn").disabled = true;
+
+          try {
+            const response = await fetch("/process", {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            // Display results
+            document.getElementById("method_used").textContent = data.method;
+
+            // Audio players
+            document.getElementById("mixed_audio").src = data.mixed_audio;
+            document.getElementById("processed_audio").src =
+              data.processed_audio;
+            document.getElementById("download_mixed").href = data.mixed_audio;
+            document.getElementById("download_processed").href =
+              data.processed_audio;
+
+            // Combined Spectrogram
+            document.getElementById("spec_combined").src =
+              data.spectrogram_combined + "?t=" + new Date().getTime();
+
+            // Metrics - 4 decimal places
+            document.getElementById("metric_stoi").textContent =
+              typeof data.metrics.stoi === "number"
+                ? data.metrics.stoi.toFixed(4)
+                : data.metrics.stoi;
+            document.getElementById("metric_pesq").textContent =
+              typeof data.metrics.pesq === "number"
+                ? data.metrics.pesq.toFixed(4)
+                : data.metrics.pesq;
+            document.getElementById("metric_mse").textContent =
+              typeof data.metrics.mse === "number"
+                ? data.metrics.mse.toFixed(4)
+                : data.metrics.mse;
+            document.getElementById("metric_mre").textContent =
+              typeof data.metrics.mre === "number"
+                ? data.metrics.mre.toFixed(4)
+                : data.metrics.mre;
+
+            // Add to log
+            const logEntry = {
+              timestamp: new Date().toISOString(),
+              sessionId: data.session_id,
+              method: data.method,
+              stoi: data.metrics.stoi,
+              pesq: data.metrics.pesq,
+              mse: data.metrics.mse,
+              mre: data.metrics.mre,
+              snr: snr,
+            };
+            processingLogs.unshift(logEntry);
+            if (processingLogs.length > 100)
+              processingLogs = processingLogs.slice(0, 100);
+            localStorage.setItem(
+              "processingLogs",
+              JSON.stringify(processingLogs)
+            );
+            updateLogTable();
+
+            document.getElementById("results").classList.remove("hidden");
+          } catch (error) {
+            document.getElementById("error_text").textContent = error.message;
+            document.getElementById("error").classList.remove("hidden");
+          } finally {
+            document.getElementById("loading").classList.add("hidden");
+            document.getElementById("processBtn").disabled = false;
+          }
+        });
+
+      // Update log table
+      function updateLogTable() {
+        const tbody = document.getElementById("logTableBody");
+        tbody.innerHTML = "";
+
+        processingLogs.forEach((log) => {
+          const row = tbody.insertRow();
+          row.className = "hover:bg-slate-50 transition";
+
+          row.innerHTML = `
+                    <td class="px-4 py-3 text-slate-700">${new Date(
+                      log.timestamp
+                    ).toLocaleString()}</td>
+                    <td class="px-4 py-3 text-slate-700 font-mono text-xs">${log.sessionId.substring(
+                      0,
+                      8
+                    )}...</td>
+                    <td class="px-4 py-3 text-slate-700">${log.method}</td>
+                    <td class="px-4 py-3 text-slate-900 font-semibold">${
+                      typeof log.stoi === "number"
+                        ? log.stoi.toFixed(4)
+                        : log.stoi
+                    }</td>
+                    <td class="px-4 py-3 text-slate-900 font-semibold">${
+                      typeof log.pesq === "number"
+                        ? log.pesq.toFixed(4)
+                        : log.pesq
+                    }</td>
+                    <td class="px-4 py-3 text-slate-900 font-semibold">${
+                      typeof log.mse === "number" ? log.mse.toFixed(4) : log.mse
+                    }</td>
+                    <td class="px-4 py-3 text-slate-900 font-semibold">${
+                      typeof log.mre === "number" ? log.mre.toFixed(4) : log.mre
+                    }</td>
+                    <td class="px-4 py-3 text-slate-700">${log.snr}</td>
+                `;
+        });
+
+        if (processingLogs.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">No processing logs yet. Process an audio file to see results here.</td></tr>';
+        }
+      }
+
+      // Export to Excel
+      function exportToExcel() {
+        if (processingLogs.length === 0) {
+          alert("No data to export. Process an audio file first.");
+          return;
+        }
+
+        const ws_data = [
+          [
+            "Timestamp",
+            "Session ID",
+            "Method",
+            "STOI",
+            "PESQ",
+            "MSE",
+            "MRE",
+            "SNR (dB)",
+          ],
+        ];
+
+        processingLogs.forEach((log) => {
+          ws_data.push([
+            new Date(log.timestamp).toLocaleString(),
+            log.sessionId,
+            log.method,
+            typeof log.stoi === "number" ? log.stoi.toFixed(4) : log.stoi,
+            typeof log.pesq === "number" ? log.pesq.toFixed(4) : log.pesq,
+            typeof log.mse === "number" ? log.mse.toFixed(4) : log.mse,
+            typeof log.mre === "number" ? log.mre.toFixed(4) : log.mre,
+            log.snr,
+          ]);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+        // Set column widths
+        ws["!cols"] = [
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 25 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 10 },
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, "Processing Logs");
+        XLSX.writeFile(
+          wb,
+          `DTLN_Processing_Logs_${new Date().toISOString().split("T")[0]}.xlsx`
+        );
+      }
+    </script>
+  </body>
+</html>
