@@ -38,11 +38,12 @@ outputs/*
 static/spectrograms/*
 pretrained_model/*
 
-# Keep folders but ignore contents
+# Keep folders and specific files
 !uploads/.gitkeep
 !outputs/.gitkeep
 !static/spectrograms/.gitkeep
 !pretrained_model/.gitkeep
+!pretrained_model/*.onnx
 
 # IDE
 .vscode/
